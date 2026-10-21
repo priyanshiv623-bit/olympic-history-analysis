@@ -3,188 +3,170 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 
-# ---------------- PAGE CONFIG ----------------
 st.set_page_config(
     page_title="Olympic History Analysis",
     page_icon="🏅",
     layout="wide"
 )
 
-# ---------------- CUSTOM DESIGN ----------------
+# ---------- Styling ----------
 st.markdown("""
 <style>
 .stApp {
-    background-color: #0b1120;
-    color: #f8fafc;
-}
-[data-testid="stSidebar"] {
-    background-color: #111c30;
-}
-[data-testid="stMetric"] {
-    background-color: #162238;
-    padding: 18px;
-    border-radius: 12px;
-    border: 1px solid #293750;
+    background-color: #0e1726;
+    color: #ffffff;
 }
 h1, h2, h3 {
-    color: #f5c451 !important;
+    color: #f5c542 !important;
+}
+[data-testid="stMetric"] {
+    background-color: #19283d;
+    padding: 16px;
+    border-radius: 12px;
+    border: 1px solid #34445b;
 }
 </style>
 """, unsafe_allow_html=True)
 
-# ---------------- LOAD DATA ----------------
+st.title("🏅 Olympic History Analysis")
+st.markdown("Explore Olympic participation, sports, and medal records from 1896 to 2016.")
+
+# ---------- Load dataset ----------
 @st.cache_data
 def load_data():
-    data = pd.read_csv("athlete_events.csv")
-    data["Medal"] = data["Medal"].fillna("No Medal")
-    data["Age"] = pd.to_numeric(data["Age"], errors="coerce")
-    data["Year"] = pd.to_numeric(data["Year"], errors="coerce")
-    return data
+    df = pd.read_csv("athlete_events.csv")
+    return df
 
 try:
     df = load_data()
-except FileNotFoundError:
-    st.error(
-        "Dataset not found. Keep athlete_events.csv "
-        "in the same folder as app.py."
-    )
+except Exception as e:
+    st.error(f"Could not load athlete_events.csv: {e}")
     st.stop()
 
-# ---------------- HEADER ----------------
-st.title("🏅 Olympic History Analysis")
-st.markdown(
-    "### Exploring Olympic history through data visualization"
-)
-st.caption(
-    "Explore athletes, countries, sports and medal records "
-    "across the Olympic Games."
-)
+required_columns = [
+    "Year", "Season", "Team", "Name",
+    "Sport", "Sex", "Medal", "Age"
+]
+missing = [col for col in required_columns if col not in df.columns]
 
-# ---------------- SIDEBAR FILTERS ----------------
-st.sidebar.title("🔎 Dashboard Filters")
+if missing:
+    st.error(f"Dataset is missing required columns: {', '.join(missing)}")
+    st.stop()
 
-years = sorted(df["Year"].dropna().astype(int).unique())
+# ---------- Sidebar filters ----------
+st.sidebar.header("🔎 Dashboard Filters")
+
+years = sorted(df["Year"].dropna().unique().astype(int).tolist())
+if not years:
+    st.error("No Olympic years were found in the dataset.")
+    st.stop()
 
 year_range = st.sidebar.slider(
     "Select Olympic year range",
-    min_value=int(min(years)),
-    max_value=int(max(years)),
-    value=(int(min(years)), int(max(years)))
+    min_value=min(years),
+    max_value=max(years),
+    value=(min(years), max(years))
 )
 
-seasons = sorted(df["Season"].dropna().unique())
+seasons = sorted(df["Season"].dropna().unique().tolist())
 selected_seasons = st.sidebar.multiselect(
     "Select season",
     seasons,
     default=seasons
 )
 
-countries = sorted(df["Team"].dropna().unique())
-selected_countries = st.sidebar.multiselect(
-    "Select countries (optional)",
-    countries
+teams = sorted(df["Team"].dropna().unique().tolist())
+selected_teams = st.sidebar.multiselect(
+    "Select teams (optional)",
+    teams
 )
 
-# ---------------- FILTER DATA ----------------
-filtered = df[
+filtered_df = df[
     df["Year"].between(year_range[0], year_range[1])
-    & df["Season"].isin(selected_seasons)
 ].copy()
 
-if selected_countries:
-    filtered = filtered[
-        filtered["Team"].isin(selected_countries)
+if selected_seasons:
+    filtered_df = filtered_df[
+        filtered_df["Season"].isin(selected_seasons)
+    ]
+else:
+    filtered_df = filtered_df.iloc[0:0]
+
+if selected_teams:
+    filtered_df = filtered_df[
+        filtered_df["Team"].isin(selected_teams)
     ]
 
-if filtered.empty:
-    st.warning("No records match these filters.")
+if filtered_df.empty:
+    st.warning("No records match the selected filters. Please change your filters.")
     st.stop()
 
-medals = filtered[filtered["Medal"] != "No Medal"].copy()
+# ---------- KPI cards ----------
+medal_df = filtered_df[filtered_df["Medal"].notna()]
+k1, k2, k3, k4 = st.columns(4)
 
-# ---------------- KPI CARDS ----------------
-athletes = filtered["ID"].nunique()
-country_count = filtered["NOC"].nunique()
-sports_count = filtered["Sport"].nunique()
-medal_records = len(medals)
+k1.metric("Unique Athletes", f"{filtered_df['Name'].nunique():,}")
+k2.metric("Teams", f"{filtered_df['NOC'].nunique():,}" if "NOC" in filtered_df.columns else f"{filtered_df['Team'].nunique():,}")
+k3.metric("Sports", f"{filtered_df['Sport'].nunique():,}")
+k4.metric("Medal Records", f"{len(medal_df):,}")
 
-c1, c2, c3, c4 = st.columns(4)
+st.caption(
+    "Counts reflect the selected filters. Medal records are athlete-event records, "
+    "not necessarily unique physical medals."
+)
 
-c1.metric("Unique Athletes", f"{athletes:,}")
-c2.metric("Countries / NOCs", f"{country_count:,}")
-c3.metric("Sports", f"{sports_count:,}")
-c4.metric("Medal Records", f"{medal_records:,}")
+# ---------- Medal distribution ----------
+st.subheader("🥇 Medal Distribution")
 
-st.divider()
+medal_counts = (
+    medal_df["Medal"]
+    .value_counts()
+    .reindex(["Gold", "Silver", "Bronze"], fill_value=0)
+    .rename_axis("Medal")
+    .reset_index(name="Records")
+)
 
-# ---------------- MEDAL PIE CHART ----------------
-left, right = st.columns(2)
+if medal_counts["Records"].sum() > 0:
+    fig = px.pie(
+        medal_counts,
+        names="Medal",
+        values="Records",
+        title="Gold, Silver and Bronze Records",
+        hole=0.35
+    )
+    st.plotly_chart(fig, use_container_width=True)
+else:
+    st.info("No medal records match the selected filters.")
 
-with left:
-    st.subheader("🥇 Medal Distribution")
+# ---------- Top teams ----------
+st.subheader("🌍 Top 10 Teams by Medal Records")
 
-    medal_counts = medals["Medal"].value_counts().reindex(
-        ["Gold", "Silver", "Bronze"], fill_value=0
-    ).reset_index()
-    medal_counts.columns = ["Medal", "Count"]
-
-    if medal_counts["Count"].sum() > 0:
-        fig = px.pie(
-            medal_counts,
-            names="Medal",
-            values="Count",
-            hole=0.45,
-            color="Medal",
-            color_discrete_map={
-                "Gold": "#f5c451",
-                "Silver": "#cbd5e1",
-                "Bronze": "#c47b45"
-            }
-        )
-        fig.update_layout(
-            template="plotly_dark",
-            paper_bgcolor="rgba(0,0,0,0)",
-            font_color="white"
-        )
-        st.plotly_chart(fig, use_container_width=True)
-    else:
-        st.info("No medal records for the selected filters.")
-
-# ---------------- TOP COUNTRIES ----------------
-with right:
-    st.subheader("🌍 Top 10 Countries by Medals")
-
-    country_medals = (
-        medals.groupby("Team")
+if not medal_df.empty:
+    top_teams = (
+        medal_df.groupby("Team")
         .size()
-        .sort_values(ascending=False)
-        .head(10)
         .reset_index(name="Medal Records")
+        .sort_values("Medal Records", ascending=False)
+        .head(10)
     )
 
     fig = px.bar(
-        country_medals.sort_values("Medal Records"),
+        top_teams.sort_values("Medal Records"),
         x="Medal Records",
         y="Team",
         orientation="h",
-        color="Medal Records",
-        color_continuous_scale=["#64748b", "#f5c451"],
-        labels={"Team": "Country / Team"}
-    )
-    fig.update_layout(
-        template="plotly_dark",
-        paper_bgcolor="rgba(0,0,0,0)",
-        showlegend=False
+        title="Top Teams",
+        text="Medal Records"
     )
     st.plotly_chart(fig, use_container_width=True)
+else:
+    st.info("No medal records available for this selection.")
 
-st.divider()
-
-# ---------------- PARTICIPATION TREND ----------------
+# ---------- Participation trend ----------
 st.subheader("📈 Olympic Participation Over Time")
 
 participation = (
-    filtered.groupby("Year")["ID"]
+    filtered_df.groupby("Year")["Name"]
     .nunique()
     .reset_index(name="Unique Athletes")
 )
@@ -194,93 +176,132 @@ fig = px.line(
     x="Year",
     y="Unique Athletes",
     markers=True,
-    labels={"Year": "Olympic Year"}
-)
-fig.update_traces(line_color="#f5c451")
-fig.update_layout(
-    template="plotly_dark",
-    paper_bgcolor="rgba(0,0,0,0)"
+    title="Unique Athletes by Olympic Year"
 )
 st.plotly_chart(fig, use_container_width=True)
 
-# ---------------- GENDER ANALYSIS ----------------
-left, right = st.columns(2)
+# ---------- Gender distribution ----------
+st.subheader("👥 Participation by Gender")
 
-with left:
-    st.subheader("👥 Athlete Entries by Gender")
+gender_data = (
+    filtered_df["Sex"]
+    .map({"M": "Male", "F": "Female"})
+    .fillna("Other/Unknown")
+    .value_counts()
+    .rename_axis("Gender")
+    .reset_index(name="Entries")
+)
 
-    gender_data = (
-        filtered["Sex"].map({"M": "Male", "F": "Female"})
-        .fillna("Other / Unknown")
-        .value_counts()
+fig = px.pie(
+    gender_data,
+    names="Gender",
+    values="Entries",
+    title="Athlete Entries by Gender",
+    hole=0.35
+)
+st.plotly_chart(fig, use_container_width=True)
+
+# ---------- Popular sports ----------
+st.subheader("🏃 Most Popular Sports")
+
+popular_sports = (
+    filtered_df.groupby("Sport")
+    .size()
+    .reset_index(name="Athlete Entries")
+    .sort_values("Athlete Entries", ascending=False)
+    .head(10)
+)
+
+fig = px.bar(
+    popular_sports.sort_values("Athlete Entries"),
+    x="Athlete Entries",
+    y="Sport",
+    orientation="h",
+    title="Top 10 Sports by Athlete Entries"
+)
+st.plotly_chart(fig, use_container_width=True)
+
+# ---------- Age distribution ----------
+st.subheader("🎂 Athlete Age Distribution")
+
+age_data = filtered_df.dropna(subset=["Age"])
+
+if not age_data.empty:
+    fig = px.histogram(
+        age_data,
+        x="Age",
+        nbins=25,
+        title="Distribution of Athlete Ages"
+    )
+    st.plotly_chart(fig, use_container_width=True)
+else:
+    st.info("Age data is unavailable for this selection.")
+
+# ---------- NEW: Detailed medal tally ----------
+st.subheader("🏅 Detailed Medal Tally")
+
+if medal_df.empty:
+    st.info("No medal records are available for the selected filters.")
+else:
+    medal_tally = (
+        medal_df.groupby("Team")
+        .agg(
+            Gold=("Medal", lambda s: (s == "Gold").sum()),
+            Silver=("Medal", lambda s: (s == "Silver").sum()),
+            Bronze=("Medal", lambda s: (s == "Bronze").sum()),
+            Total=("Medal", "count")
+        )
         .reset_index()
-    )
-    gender_data.columns = ["Gender", "Entries"]
-
-    fig = px.pie(
-        gender_data,
-        names="Gender",
-        values="Entries",
-        hole=0.4,
-        color_discrete_sequence=["#4ea5d9", "#f08bb4", "#a5b4fc"]
-    )
-    fig.update_layout(
-        template="plotly_dark",
-        paper_bgcolor="rgba(0,0,0,0)"
-    )
-    st.plotly_chart(fig, use_container_width=True)
-
-# ---------------- POPULAR SPORTS ----------------
-with right:
-    st.subheader("🏃 Most Popular Sports")
-
-    sports = (
-        filtered.groupby("Sport")["ID"]
-        .count()
-        .sort_values(ascending=False)
-        .head(10)
-        .sort_values()
-        .reset_index(name="Athlete Entries")
+        .sort_values("Total", ascending=False)
+        .reset_index(drop=True)
     )
 
-    fig = px.bar(
-        sports,
-        x="Athlete Entries",
-        y="Sport",
-        orientation="h",
-        color="Athlete Entries",
-        color_continuous_scale=["#64748b", "#38bdf8"]
+    st.dataframe(
+        medal_tally,
+        use_container_width=True,
+        hide_index=True
     )
-    fig.update_layout(
-        template="plotly_dark",
-        paper_bgcolor="rgba(0,0,0,0)",
-        showlegend=False
+
+    st.download_button(
+        label="📥 Download Medal Tally as CSV",
+        data=medal_tally.to_csv(index=False).encode("utf-8"),
+        file_name="olympic_medal_tally.csv",
+        mime="text/csv"
     )
-    st.plotly_chart(fig, use_container_width=True)
 
-# ---------------- AGE ANALYSIS ----------------
-st.divider()
-st.subheader("🎯 Athlete Age Distribution")
+# ---------- Dataset preview ----------
+st.subheader("📋 Filtered Dataset Preview")
 
-age_data = filtered.dropna(subset=["Age"])
-
-fig = px.histogram(
-    age_data,
-    x="Age",
-    nbins=30,
-    labels={"Age": "Age in Years"},
-    color_discrete_sequence=["#f5c451"]
+st.dataframe(
+    filtered_df.head(100),
+    use_container_width=True,
+    hide_index=True
 )
-fig.update_layout(
-    template="plotly_dark",
-    paper_bgcolor="rgba(0,0,0,0)"
-)
-st.plotly_chart(fig, use_container_width=True)
-
-# ---------------- DATA PREVIEW ----------------
-with st.expander("View dataset preview"):
-    st.dataframe(filtered.head(100), use_container_width=True)
 
 st.caption(
-    "Olympic History Analysis | Data visualization project"
+    f"Showing up to 100 of {len(filtered_df):,} filtered rows."
+)
+
+st.markdown("---")
+st.markdown(
+    "Olympic History Analysis | Python • Pandas • Streamlit • Plotly"
+)
+
+
+
+st.markdown("---")
+
+st.markdown(
+    """
+    <div style="text-align: center; padding: 20px;">
+        <h3 style="color: #F2C14E;">Developed By</h3>
+        <p style="font-size: 17px; color: white;">
+            Priyanshi Verma &nbsp; | &nbsp; Sweli Mehta
+        </p>
+        <p style="font-size: 12px; color: #AAB4C3;">
+            Olympic History Analysis · Python · Streamlit
+        </p>
+    </div>
+    """,
+    unsafe_allow_html=True
 )
