@@ -1,80 +1,124 @@
-# 🏅 Olympic History Analysis
+# Olympic History Analysis 🏅
 
 ## 📌 Project Overview
 
-**Olympic History Analysis** is a Python-based data analysis and visualization project that explores **120 years of Olympic Games history (1896–2016)**.
+**Olympic History Analysis** is a Python-based data analysis and interactive visualization project that explores Olympic Games history from **1896 to 2016**.
 
-The project will analyze athlete participation, countries, sports, events, and medal achievements to identify meaningful trends and patterns throughout Olympic history.
+The project uses athlete and event data to explore participation trends, medal achievements, gender distribution, popular sports, and athlete demographics through an interactive dashboard.
 
 ## 👥 Team Members
 
-* **Priyanshi Verma**
-* **Sweli Mehta**
+- **Priyanshi Verma**
+- **Sweli Mehta**
+
+This is a collaborative academic project. Team responsibilities are divided across development, analysis, visualization, testing, and documentation.
 
 ## 🎯 Project Objectives
 
-The main objectives of this project are:
-
-* Analyze Olympic participation over the years.
-* Identify countries with the highest number of medals.
-* Analyze Gold, Silver, and Bronze medal distribution.
-* Compare male and female participation.
-* Identify the most participated sports and events.
-* Study trends in Olympic performance over time.
-* Create meaningful visualizations from the dataset.
-* Derive useful insights from the historical Olympic data.
+- Analyze Olympic participation over time.
+- Identify countries and teams with the highest medal counts.
+- Explore Gold, Silver, and Bronze medal distributions.
+- Compare male and female athlete participation.
+- Identify popular sports based on athlete-event records.
+- Explore athlete age distributions.
+- Present findings through clear, interactive visualizations.
+- Make Olympic data easier to explore and understand.
 
 ## 📊 Dataset
 
-**Dataset Name:** 120 Years of Olympic History – Athletes and Results
+**Dataset:** 120 Years of Olympic History — Athletes and Results
 
 **Source:** Kaggle
 
-The dataset contains information about Olympic athletes, countries/teams, sports, events, Olympic years, gender, and medals.
+**Coverage:** Olympic Games from 1896 to 2016.
 
-## 📈 Planned Visualizations
+The dataset contains information about athletes, teams, National Olympic Committees (NOCs), sports, events, Olympic years, seasons, gender, age, and medal results.
 
-The project will include visualizations such as:
+Place `athlete_events.csv` in the project root directory before running the dashboard.
 
-1. **Top 10 Countries by Total Medals** – Bar Chart
-2. **Olympic Participation Over the Years** – Line Chart
-3. **Gold, Silver and Bronze Medal Distribution** – Bar/Pie Chart
-4. **Male vs Female Participation** – Bar Chart
-5. **Top Sports by Number of Participants** – Bar Chart
-6. **Athlete Height vs Weight** – Scatter Plot
+## 📈 Dashboard Features
 
-These visualizations will help identify trends, comparisons, and relationships within the Olympic dataset.
+The interactive dashboard currently includes:
 
-## 🛠️ Technologies and Libraries
+1. **Key Performance Indicators** — Unique athletes, NOCs, sports, and medal records.
+2. **Medal Distribution** — Pie chart comparing Gold, Silver, and Bronze medal records.
+3. **Top 10 Countries/Teams** — Bar chart ranking teams by medal records.
+4. **Olympic Participation Trends** — Line chart showing unique athletes across Olympic years.
+5. **Gender Analysis** — Pie chart comparing male and female athlete-event entries.
+6. **Popular Sports** — Bar chart of sports with the most athlete-event records.
+7. **Athlete Age Distribution** — Histogram showing the distribution of recorded athlete ages.
+8. **Interactive Filters** — Filter results by Olympic year range, season, and selected teams.
+9. **Dataset Preview** — Inspect a sample of the filtered records.
 
-The following tools and Python libraries will be used:
+**Note:** Medal records, athlete-event entries, unique athletes, and unique NOCs are different measures. The charts use the relevant measure for each analysis.
 
-* **Python**
-* **Pandas** – Data manipulation and analysis
-* **NumPy** – Numerical operations
-* **Matplotlib** – Data visualization
-* **Seaborn** – Statistical visualization
-* **Jupyter Notebook / Google Colab** – Project development
-* **Git & GitHub** – Version control and collaboration
+## 🛠️ Technologies Used
 
-## 📁 Planned Project Structure
+- **Python** — Main programming language.
+- **Pandas** — Data loading, cleaning, grouping, and analysis.
+- **Streamlit** — Interactive dashboard interface.
+- **Plotly** — Interactive charts and visualizations.
+- **Git and GitHub** — Version control and collaboration.
+
+## 📁 Project Structure
 
 ```text
 olympic-history-analysis/
-│
 ├── README.md
-├── dataset/
-├── notebooks/
-├── visualizations/
+├── .gitignore
+├── main.py
+├── app.py
 ├── requirements.txt
-└── analysis/
+└── athlete_events.csv
 ```
 
+## 🚀 How to Run the Project
 
-**Current Status:** Proposal / Initial Setup
+### 1. Clone the repository
 
-The dataset analysis, visualizations, findings, and final conclusions will be added as the project progresses.
+```bash
+git clone https://github.com/priyanshiv623-bit/olympic-history-analysis.git
+cd olympic-history-analysis
+```
 
-## 👩‍💻 Team
+### 2. Create a virtual environment (recommended)
+
+```bash
+python -m venv .venv
+```
+
+Activate it on Windows:
+
+```powershell
+.\.venv\Scripts\Activate.ps1
+```
+
+### 3. Install the required libraries
+
+```bash
+python -m pip install -r requirements.txt
+```
+
+### 4. Launch the dashboard
+
+```bash
+python -m streamlit run app.py
+```
+
+Streamlit will provide a local URL, usually `http://localhost:8501`, where the dashboard can be viewed.
+
+## 🤝 Collaboration
+
+The project is maintained by Priyanshi Verma and Sweli Mehta. Development tasks include dashboard implementation, data analysis, visualization, testing, and documentation.
+
+Individual responsibilities and contributions should be documented according to the work completed by each team member.
+
+## 📌 Project Status
+
+The initial dashboard implementation is running locally. Further work may include validation of analytical results, improved insights, additional visualizations, interface refinements, and final documentation.
+
+## 👩‍💻 Authors
 
 **Priyanshi Verma & Sweli Mehta**
+
+GitHub Repository: https://github.com/priyanshiv623-bit/olympic-history-analysis
